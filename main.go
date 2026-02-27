@@ -3,27 +3,40 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"sync"
+
 	"vasco-news-engine/internal/bot"
 	"vasco-news-engine/internal/scraper"
 	"vasco-news-engine/internal/storage"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
 
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Erro ao carregar arquivo .env")
+	}
 	//configuracoes, idealmente em um .env
-	const (
-		botToken = "TOKEN"
-		chatId   = 123456
-		dbPath   = "./vasco_news.db"
-	)
+
+	token := os.Getenv("TELEGRAM_TOKEN")
+	chatIDStr := os.Getenv("TELEGRAM_CHAT_ID")
+	dbPath := os.Getenv("DB_PATH")
+
+	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
+	if err != nil {
+		log.Fatal("Erro: TELEGRAM_CHAT_ID deve ser um número")
+	}
 
 	db, err := storage.NewDB(dbPath)
 	if err != nil {
 		log.Fatal("Erro no banco:", err)
 	}
 
-	tgBot, err := bot.NewTelegramBot(botToken, chatId)
+	tgBot, err := bot.NewTelegramBot(token, chatID)
 	if err != nil {
 		log.Fatal("Erro no telegram:", err)
 	}

@@ -1,0 +1,18 @@
+# Binaries
+vasco-news-engine
+*.exe
+
+# database
+*.db
+*.db-journal
+
+# environment variables
+.env
+
+# IDEs directories
+.vscode/
+.idea/
+.DS_Store
+
+# test logs
+*.log

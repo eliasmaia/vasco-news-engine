@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"vasco-news-engine/internal/bot"
 	"vasco-news-engine/internal/scraper"
@@ -14,13 +15,18 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type App struct {
+	DB       *storage.DB
+	Bot      *bot.TelegramBot
+	Scrapers []scraper.SiteScraper
+}
+
 func main() {
 
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Erro ao carregar arquivo .env")
 	}
-	//configuracoes, idealmente em um .env
 
 	token := os.Getenv("TELEGRAM_TOKEN")
 	chatIDStr := os.Getenv("TELEGRAM_CHAT_ID")
@@ -41,16 +47,39 @@ func main() {
 		log.Fatal("Erro no telegram:", err)
 	}
 
-	scrapers := []scraper.SiteScraper{
-		&scraper.Supervasco{},
+	app := &App{
+		DB:  db,
+		Bot: tgBot,
+		Scrapers: []scraper.SiteScraper{
+			&scraper.Supervasco{},
+		},
 	}
+
+	intervalo := 15 * time.Minute
+	ticker := time.NewTicker(intervalo)
+	defer ticker.Stop()
+
+	fmt.Println("🤖 Bot rodando... Pressione Ctrl+C para parar.")
+
+	app.checkAndNotify()
+
+	for {
+		select {
+		case t := <-ticker.C:
+			fmt.Printf("🔔 Pulso recebido em: %s\n", t.Format("15:04:05"))
+			app.checkAndNotify()
+		}
+	}
+
+}
+
+func (a *App) checkAndNotify() {
+	fmt.Println("💢 Buscando notícias do Vascão...")
 
 	var wg sync.WaitGroup
 	results := make(chan scraper.News)
 
-	fmt.Println("💢 Buscando notícias do Vascão...")
-
-	for _, s := range scrapers {
+	for _, s := range a.Scrapers {
 		wg.Add(1)
 		go func(src scraper.SiteScraper) {
 			defer wg.Done()
@@ -68,16 +97,23 @@ func main() {
 		close(results)
 	}()
 
+	novasCount := 0
 	for n := range results {
-		if db.IsNew(n.Link) {
+		if a.DB.IsNew(n.Link) {
 			fmt.Printf("🆕 Enviando: %s\n", n.Title)
-			err := tgBot.SendNews(n.Title, n.Link, n.Source)
+			err := a.Bot.SendNews(n.Title, n.Link, n.Source)
 			if err == nil {
-				db.Save(n.Link, n.Title, n.Source)
+				a.DB.Save(n.Link, n.Title, n.Source)
+				novasCount++
 			} else {
 				fmt.Println("❌ Erro ao enviar Telegram:", err)
 			}
 		}
 	}
 
+	if novasCount == 0 {
+		fmt.Println("😴 Nenhuma notícia nova encontrada.")
+	} else {
+		fmt.Printf("✅ %d novas notícias enviadas!\n", novasCount)
+	}
 }

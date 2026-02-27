@@ -2,11 +2,32 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"sync"
+	"vasco-news-engine/internal/bot"
 	"vasco-news-engine/internal/scraper"
+	"vasco-news-engine/internal/storage"
 )
 
 func main() {
+
+	//configuracoes, idealmente em um .env
+	const (
+		botToken = "TOKEN"
+		chatId   = 123456
+		dbPath   = "./vasco_news.db"
+	)
+
+	db, err := storage.NewDB(dbPath)
+	if err != nil {
+		log.Fatal("Erro no banco:", err)
+	}
+
+	tgBot, err := bot.NewTelegramBot(botToken, chatId)
+	if err != nil {
+		log.Fatal("Erro no telegram:", err)
+	}
+
 	scrapers := []scraper.SiteScraper{
 		&scraper.Supervasco{},
 	}
@@ -14,15 +35,15 @@ func main() {
 	var wg sync.WaitGroup
 	results := make(chan scraper.News)
 
-	fmt.Println("Iniciando busca de noticias do Vascão...")
+	fmt.Println("💢 Buscando notícias do Vascão...")
 
 	for _, s := range scrapers {
 		wg.Add(1)
 		go func(src scraper.SiteScraper) {
-			defer wg.Add(-1)
+			defer wg.Done()
 			news, err := src.Fetch()
 			if err == nil {
-				for _, n := range news[:5] {
+				for _, n := range news {
 					results <- n
 				}
 			}
@@ -35,7 +56,15 @@ func main() {
 	}()
 
 	for n := range results {
-		fmt.Printf("[%s] %s\n🔗 %s\n\n", n.Source, n.Title, n.Link)
+		if db.IsNew(n.Link) {
+			fmt.Printf("🆕 Enviando: %s\n", n.Title)
+			err := tgBot.SendNews(n.Title, n.Link, n.Source)
+			if err == nil {
+				db.Save(n.Link, n.Title, n.Source)
+			} else {
+				fmt.Println("❌ Erro ao enviar Telegram:", err)
+			}
+		}
 	}
 
 }

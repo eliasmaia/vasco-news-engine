@@ -52,6 +52,7 @@ func main() {
 		Bot: tgBot,
 		Scrapers: []scraper.SiteScraper{
 			&scraper.Supervasco{},
+			&scraper.OfficialScraper{URL: "https://vasco.com.br/noticias/"},
 		},
 	}
 

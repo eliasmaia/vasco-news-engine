@@ -2,17 +2,28 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 type DB struct {
 	conn *sql.DB
 }
 
-func NewDB(path string) (*DB, error) {
-	db, err := sql.Open("sqlite3", path)
+func NewDB() (*DB, error) {
+	url := os.Getenv("TURSO_DATABASE_URL")
+	token := os.Getenv("TURSO_AUTH_TOKEN")
+
+	dbUrl := fmt.Sprintf("%s?authToken=%s", url, token)
+
+	db, err := sql.Open("libsql", dbUrl)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
 		return nil, err
 	}
 
@@ -40,7 +51,7 @@ func (d *DB) IsNew(link string) bool {
 }
 
 func (d *DB) Save(n string, title string, source string) error {
-	query := "INSERT INTO sent_news (link, title, source) VALUES (?, ?, ?)"
+	query := "INSERT OR IGNORE INTO sent_news (link, title, source) VALUES (?, ?, ?)"
 	_, err := d.conn.Exec(query, n, title, source)
 	return err
 }

@@ -30,14 +30,13 @@ func main() {
 
 	token := os.Getenv("TELEGRAM_TOKEN")
 	chatIDStr := os.Getenv("TELEGRAM_CHAT_ID")
-	dbPath := os.Getenv("DB_PATH")
 
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 	if err != nil {
 		log.Fatal("Erro: TELEGRAM_CHAT_ID deve ser um número")
 	}
 
-	db, err := storage.NewDB(dbPath)
+	db, err := storage.NewDB()
 	if err != nil {
 		log.Fatal("Erro no banco:", err)
 	}

@@ -24,8 +24,8 @@ type App struct {
 func main() {
 
 	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Erro ao carregar arquivo .env")
+	if err := godotenv.Load(); err != nil {
+		log.Println("Aviso: Arquivo .env não encontrado, usando variáveis de ambiente do sistema.")
 	}
 
 	token := os.Getenv("TELEGRAM_TOKEN")

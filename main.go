@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	"time"
 
 	"vasco-news-engine/internal/bot"
 	"vasco-news-engine/internal/scraper"
@@ -22,8 +21,7 @@ type App struct {
 }
 
 func main() {
-
-	err := godotenv.Load()
+	// Tenta carregar o .env local; se não achar (GitHub Actions), segue o jogo
 	if err := godotenv.Load(); err != nil {
 		log.Println("Aviso: Arquivo .env não encontrado, usando variáveis de ambiente do sistema.")
 	}
@@ -55,22 +53,10 @@ func main() {
 		},
 	}
 
-	intervalo := 15 * time.Minute
-	ticker := time.NewTicker(intervalo)
-	defer ticker.Stop()
+	fmt.Println("🤖 Iniciando verificação de notícias do Vascão...")
 
-	fmt.Println("🤖 Bot rodando... Pressione Ctrl+C para parar.")
-
+	// Executa a verificação uma única vez e o programa encerra naturalmente (exit 0)
 	app.checkAndNotify()
-
-	for {
-		select {
-		case t := <-ticker.C:
-			fmt.Printf("🔔 Pulso recebido em: %s\n", t.Format("15:04:05"))
-			app.checkAndNotify()
-		}
-	}
-
 }
 
 func (a *App) checkAndNotify() {

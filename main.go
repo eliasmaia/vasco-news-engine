@@ -50,7 +50,6 @@ func main() {
 		Scrapers: []scraper.SiteScraper{
 			&scraper.Supervasco{},
 			&scraper.GeScraper{URL: "https://ge.globo.com/futebol/times/vasco/"},
-			&scraper.EspnScraper{URL: "https://www.espn.com.br/futebol/time/_/id/3454/vasco-da-gama"},
 			&scraper.NetvascoScraper{URL: "https://www.netvasco.com.br/"}, // <-- NetVasco adicionado no lugar do UOL
 			&scraper.LanceScraper{URL: "https://www.lance.com.br/vasco"},
 		},

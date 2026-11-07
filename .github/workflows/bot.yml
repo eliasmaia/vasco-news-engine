@@ -1,9 +1,8 @@
 name: Vasco News Bot
 
 on:
-  schedule:
-    # Roda a cada 30 minutos (você pode ajustar no padrão cron)
-    - cron: '17 */3 * * *'
+  repository_dispatch:
+    types: [run-scraper]
   # Permite disparar manualmente na aba "Actions" do GitHub se quiser testar
   workflow_dispatch:
 

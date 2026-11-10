@@ -37,21 +37,27 @@ func NewDB() (*DB, error) {
 	);`
 
 	_, err = db.Exec(query)
-	return &DB{conn: db}, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &DB{conn: db}, nil
 }
 
 func (d *DB) IsNew(link string) bool {
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM sent_news WHERE link = ?)"
+
 	err := d.conn.QueryRow(query, link).Scan(&exists)
 	if err != nil {
 		return false
 	}
+
 	return !exists
 }
 
-func (d *DB) Save(n string, title string, source string) error {
+func (d *DB) Save(link string, title string, source string) error {
 	query := "INSERT OR IGNORE INTO sent_news (link, title, source) VALUES (?, ?, ?)"
-	_, err := d.conn.Exec(query, n, title, source)
+	_, err := d.conn.Exec(query, link, title, source)
 	return err
 }

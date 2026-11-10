@@ -6,11 +6,18 @@ import (
 	"gopkg.in/telebot.v3"
 )
 
+//BotClient defines the contract (interface) for any bot client (ISP applied)
+type BotClient interface {
+	Send(to telebot.Recipient, what interface{}, options ...interface{}) (*telebot.Message, error)
+}
+
+//TelegramBot manages the sending infrastructure (DIP applied)
 type TelegramBot struct {
-	Bot    *telebot.Bot
+	client BotClient
 	ChatID int64
 }
 
+//NewTelegramBot works like the Factory Method, to initialize the bot
 func NewTelegramBot(token string, chatID int64) (*TelegramBot, error) {
 	pref := telebot.Settings{
 		Token:  token,
@@ -22,15 +29,12 @@ func NewTelegramBot(token string, chatID int64) (*TelegramBot, error) {
 		return nil, err
 	}
 
-	return &TelegramBot{Bot: b, ChatID: chatID}, nil
+	return &TelegramBot{client: b, ChatID: chatID}, nil
 }
 
-func (t *TelegramBot) SendNews(title, link, source string) error {
-	msg := "💢 *NOVIDADE NO GIGANTE* 💢\n\n" +
-		title + "\n\n" +
-		"📍 Fonte: " + source + "\n" +
-		"🔗 [Leia mais](" + link + ")"
-
-	_, err := t.Bot.Send(telebot.ChatID(t.ChatID), msg, telebot.ModeMarkdown)
+//SendNews receives the message DTO and send it to the client injected
+func (t *TelegramBot) SendNews(news NewsMessage) error {
+	msg := news.Format()
+	_, err := t.client.Send(telebot.ChatID(t.ChatID), msg, telebot.ModeMarkdown)
 	return err
 }

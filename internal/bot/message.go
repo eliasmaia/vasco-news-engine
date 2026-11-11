@@ -7,7 +7,7 @@ type NewsMessage struct {
 	Source 	string
 }
 
-//// Format isolates the responsabilidade of drawing the message template
+// Format isolates the responsabilidade of drawing the message template
 func (n NewsMessage) Format() string {
 	return  "💢 *NOVIDADE NO GIGANTE* 💢\n\n" +
 		n.Title + "\n\n" +

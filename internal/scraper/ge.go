@@ -7,7 +7,7 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
-const SourceGloboEsporte = "Globoesporte"
+const SourceGloboEsporte = "GloboEsporte"
 
 type GeScraper struct {
 	URL string

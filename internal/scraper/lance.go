@@ -42,7 +42,7 @@ func (l *LanceScraper) Fetch() ([]News, error) {
 	var newsList 	[]News
 	var scraperErr 	error
 
-	c := colly.NewCollector(
+	collector := colly.NewCollector(
 		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
 	)
 
@@ -54,7 +54,7 @@ func (l *LanceScraper) Fetch() ([]News, error) {
 		scraperErr = fmt.Errorf("erro HTTP no scraper do Lance! [Status: %d]: %w", r.StatusCode, err)
 	})
 
-	c.OnHTML("script[type='application/ld+json']", func(e *colly.HTMLElement) {
+	collector.OnHTML("script[type='application/ld+json']", func(e *colly.HTMLElement) {
 		content := e.Text
 
 		if strings.Contains(content, "ItemList") && strings.Contains(content, "ListItem") {
@@ -70,7 +70,7 @@ func (l *LanceScraper) Fetch() ([]News, error) {
 										newsList = append(newsList, News{
 											Title:  strings.TrimSpace(item.Name),
 											Link:   strings.TrimSpace(item.URL),
-											Source: "Lance!",
+											Source: SourceLance,
 										})
 									}
 								}
@@ -82,7 +82,7 @@ func (l *LanceScraper) Fetch() ([]News, error) {
 		}
 	})
 
-	err := c.Visit(n.URL)
+	err := collector.Visit(l.URL)
 	if err != nil {
 		return nil, fmt.Errorf("falha ao visitar Lance!: %w", err)
 	}
@@ -93,5 +93,5 @@ func (l *LanceScraper) Fetch() ([]News, error) {
 
 	uniqueNews := RemoveDuplicateNews(newsList)
 	fmt.Printf("🔍 Lance! Scraper encontrou %d notícias únicas.\n", len(uniqueNews))
-	return uniqueNews, ni
+	return uniqueNews, nil
 }

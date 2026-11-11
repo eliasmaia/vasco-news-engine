@@ -19,7 +19,7 @@ func (n *NetvascoScraper) Fetch() ([]News, error) {
 	var newsList 	[]News
 	var scraperErr 	error
 
-	c := colly.NewCollector(
+	collector := colly.NewCollector(
 		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
 	)
 
@@ -31,7 +31,7 @@ func (n *NetvascoScraper) Fetch() ([]News, error) {
 		scraperErr = fmt.Errorf("erro HTTP no scraper do NetVasco [Status: %d]: %w", r.StatusCode, err)
 	})
 
-	c.OnHTML("a", func(el *colly.HTMLElement) {
+	collector.OnHTML("a", func(el *colly.HTMLElement) {
 		href := el.Attr("href")
 		titleElement := strings.TrimSpace(el.Text)
 
@@ -56,7 +56,7 @@ func (n *NetvascoScraper) Fetch() ([]News, error) {
 		}
 	})
 
-	err := c.Visit(n.URL)
+	err := collector.Visit(n.URL)
 	if err != nil {
 		return nil, fmt.Errorf("falha ao visitar NetVasco: %w", err)
 	}

@@ -20,7 +20,7 @@ func (s *Supervasco) Fetch() ([]News, error) {
 	var scraperErr 	error
 
 	collector := colly.NewCollector(
-		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"),
+		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
 	)
 
 	collector.OnResponse(func(r *colly.Response) {
@@ -39,7 +39,7 @@ func (s *Supervasco) Fetch() ([]News, error) {
 			newsList = append(newsList, News{
 				Title:  titleElement,
 				Link:   e.Request.AbsoluteURL(linkElement),
-				Source: "Supervasco",
+				Source: SourceSupervasco,
 			})
 		}
 	})

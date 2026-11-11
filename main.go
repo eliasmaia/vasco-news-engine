@@ -21,34 +21,34 @@ type App struct {
 }
 
 func main() {
-	// Tenta carregar o .env local; se não achar (GitHub Actions), segue o jogo
+	// try to obtain the .env local file; if it does not, then (GitHub Actions)
 	if err := godotenv.Load(); err != nil {
 		log.Println("Aviso: Arquivo .env não encontrado, usando variáveis de ambiente do sistema.")
 	}
 
-	token := os.Getenv("TELEGRAM_TOKEN")
-	chatIDStr := os.Getenv("TELEGRAM_CHAT_ID")
+	token 		:= os.Getenv("TELEGRAM_TOKEN")
+	chatIDStr 	:= os.Getenv("TELEGRAM_CHAT_ID")
 
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 	if err != nil {
-		log.Fatal("Erro: TELEGRAM_CHAT_ID deve ser um número")
+		log.Fatal("Erro: TELEGRAM_CHAT_ID deve ser um número válido")
 	}
 
 	db, err := storage.NewDB()
 	if err != nil {
-		log.Fatal("Erro no banco:", err)
+		log.Fatal("Erro crítico ao conectar no banco:", err)
 	}
 
 	tgBot, err := bot.NewTelegramBot(token, chatID)
 	if err != nil {
-		log.Fatal("Erro no telegram:", err)
+		log.Fatal("Erro crítico ao inicializar bot do telegram:", err)
 	}
 
 	app := &App{
 		DB:  db,
 		Bot: tgBot,
 		Scrapers: []scraper.SiteScraper{
-			&scraper.Supervasco{},
+			&scraper.Supervasco{URL: "https://www.supervasco.com"},
 			&scraper.GeScraper{URL: "https://ge.globo.com/futebol/times/vasco/"},
 			&scraper.NetvascoScraper{URL: "https://www.netvasco.com.br/"}, // <-- NetVasco adicionado no lugar do UOL
 			&scraper.LanceScraper{URL: "https://www.lance.com.br/vasco"},
@@ -57,51 +57,66 @@ func main() {
 
 	fmt.Println("🤖 Iniciando verificação de notícias do Vascão...")
 
-	// Executa a verificação uma única vez e o programa encerra naturalmente (exit 0)
+	// runs the check once, and the program finishes naturally (exit 0)
 	app.checkAndNotify()
 }
 
 func (a *App) checkAndNotify() {
-	fmt.Println("💢 Buscando notícias do Vascão...")
+	fmt.Println("💢 Buscando notícias do Vascão em paralelo...")
 
 	var wg sync.WaitGroup
 	results := make(chan scraper.News)
-
+	
+	//dispatches the scrapers concurrently using the Goroutines
 	for _, s := range a.Scrapers {
 		wg.Add(1)
 		go func(src scraper.SiteScraper) {
 			defer wg.Done()
 			news, err := src.Fetch()
-			if err == nil {
-				for _, n := range news {
-					results <- n
-				}
+			if err != nil {
+				fmt.Printf("⚠️ Alerta no scraper: %v\n", err)
+				return
+			}
+			for _, n := range news {
+				results <- n
 			}
 		}(s)
 	}
 
+	// goroutine to close all channels once all threads finish
 	go func() {
 		wg.Wait()
 		close(results)
 	}()
 
-	novasCount := 0
+	newsCount := 0
 	for n := range results {
 		if a.DB.IsNew(n.Link) {
-			fmt.Printf("🆕 Enviando: %s\n", n.Title)
-			err := a.Bot.SendNews(n.Title, n.Link, n.Source)
+			fmt.Printf("🆕 Noticia inédita encontrada: %s\n", n.Title)
+			
+			msgDTO := bot.NewsMessage{
+				Title:	n.Title,
+				Link:	n.Link,
+				Source:	n.Source,
+			}
+
+			err := a.Bot.SendNews(msgDTO)
 			if err == nil {
-				a.DB.Save(n.Link, n.Title, n.Source)
-				novasCount++
+				saveErr := a.DB.Save(n.Link, n.Title, n.Source)
+				if saveErr != nil {
+					fmt.Printf("❌ Erro ao salvar a noticia no banco: %v\n", saveErr)	
+				} else {
+					newsCount++
+				}
 			} else {
-				fmt.Println("❌ Erro ao enviar Telegram:", err)
+				fmt.Printf("❌ Erro ao enviar mensagem para o Telegram: %v\n", err)
 			}
 		}
 	}
 
-	if novasCount == 0 {
+	if newsCount == 0 {
 		fmt.Println("😴 Nenhuma notícia nova encontrada.")
 	} else {
-		fmt.Printf("✅ %d novas notícias enviadas!\n", novasCount)
+		fmt.Printf("✅ %d novas notícias enviadas com sucesso!\n", newsCount)
 	}
 }

@@ -8,9 +8,13 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
+const SourceLance = "Lance!"
+
 type LanceScraper struct {
 	URL string
 }
+
+var _ SiteScraper = (*LanceScraper)(nil)
 
 // Estruturas auxiliares para decodificar o JSON-LD do Lance!
 type LdListItem struct {
@@ -35,17 +39,24 @@ type LdSchema struct {
 }
 
 func (l *LanceScraper) Fetch() ([]News, error) {
-	var newsList []News
+	var newsList 	[]News
+	var scraperErr 	error
 
 	c := colly.NewCollector(
 		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
 	)
 
-	// Captura o conteúdo da tag script que contém o ItemList estruturado do JSON-LD
+	collector.OnResponse(func(r *colly.Response) {
+		fmt.Printf("✅ Resposta recebida de [%s] [Status: %d]\n", r.Request.URL, r.StatusCode)
+	})
+
+	collector.OnError(func(r *colly.Response, err error){
+		scraperErr = fmt.Errorf("erro HTTP no scraper do Lance! [Status: %d]: %w", r.StatusCode, err)
+	})
+
 	c.OnHTML("script[type='application/ld+json']", func(e *colly.HTMLElement) {
 		content := e.Text
 
-		// Filtramos apenas o bloco JSON que possui a lista de itens (ItemList)
 		if strings.Contains(content, "ItemList") && strings.Contains(content, "ListItem") {
 			var schema LdSchema
 			err := json.Unmarshal([]byte(content), &schema)
@@ -54,9 +65,7 @@ func (l *LanceScraper) Fetch() ([]News, error) {
 					if graph.MainEntity != nil && graph.MainEntity.Type == "ItemList" {
 						for _, item := range graph.MainEntity.ItemListElement {
 							if item.Name != "" && item.URL != "" {
-								// Filtra para garantir que foca em matérias do Vasco ou do contexto do clube
 								if strings.Contains(item.URL, "/vasco") || strings.Contains(item.URL, "/futebol-nacional/") {
-									// Evita pegar links genéricos da home da tag
 									if !strings.HasSuffix(item.URL, "/vasco") && !strings.HasSuffix(item.URL, "/vasco/") {
 										newsList = append(newsList, News{
 											Title:  strings.TrimSpace(item.Name),
@@ -73,12 +82,16 @@ func (l *LanceScraper) Fetch() ([]News, error) {
 		}
 	})
 
-	err := c.Visit(l.URL)
+	err := c.Visit(n.URL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("falha ao visitar Lance!: %w", err)
 	}
 
-	uniqueNews := removeDuplicateNews(newsList)
-	fmt.Printf("🔍 Lance! Scraper encontrou %d notícias via JSON-LD.\n", len(uniqueNews))
-	return uniqueNews, nil
+	if scraperErr != nil {
+		return nil, scraperErr
+	}
+
+	uniqueNews := RemoveDuplicateNews(newsList)
+	fmt.Printf("🔍 Lance! Scraper encontrou %d notícias únicas.\n", len(uniqueNews))
+	return uniqueNews, ni
 }

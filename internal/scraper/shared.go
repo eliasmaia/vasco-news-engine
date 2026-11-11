@@ -1,7 +1,18 @@
 package scraper
 
-// removeDuplicateNews remove links duplicados de uma lista de notícias
-func removeDuplicateNews(newsList []News) []News {
+type News struct {
+	Title	string
+	Link	string
+	Source	string
+}
+
+//defines the standard contract for all scrapers (ISP)
+type SiteScraper interface {
+		Fetch() ([]News, error)
+}
+
+// removeDuplicateNews remove duplicate links from a list of news
+func RemoveDuplicateNews(newsList []News) []News {
 	keys := make(map[string]bool)
 	var list []News
 	for _, item := range newsList {

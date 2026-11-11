@@ -7,40 +7,50 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
+const SourceNetVasco = "NetVasco"
+
 type NetvascoScraper struct {
 	URL string
 }
 
+var _ SiteScraper = (*NetvascoScraper)(nil)
+
 func (n *NetvascoScraper) Fetch() ([]News, error) {
-	var newsList []News
+	var newsList 	[]News
+	var scraperErr 	error
 
 	c := colly.NewCollector(
 		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
 	)
 
+	collector.OnResponse(func(r *colly.Response) {
+		fmt.Printf("✅ Resposta recebida de [%s] [Status: %d]\n", r.Request.URL, r.StatusCode)
+	})
+
+	collector.OnError(func(r *colly.Response, err error){
+		scraperErr = fmt.Errorf("erro HTTP no scraper do NetVasco [Status: %d]: %w", r.StatusCode, err)
+	})
+
 	c.OnHTML("a", func(el *colly.HTMLElement) {
 		href := el.Attr("href")
-		title := strings.TrimSpace(el.Text)
+		titleElement := strings.TrimSpace(el.Text)
 
-		if href == "" || title == "" {
+		if href == "" || titleElement == "" {
 			return
 		}
 
-		// Converte para URL absoluta primeiro para garantir que o domínio seja avaliado corretamente
-		absURL := el.Request.AbsoluteURL(href)
+		linkElement := el.Request.AbsoluteURL(href)
 
-		// Filtra links que pertencem ao NetVasco e têm tamanho de título compatível com notícia
-		if strings.Contains(absURL, "netvasco.com.br") && len(title) > 20 {
-			// Ignora a home pura, páginas institucionais e menus fixos
-			if !strings.HasSuffix(absURL, "netvasco.com.br/") && 
-			   !strings.Contains(absURL, "esportes.html") && 
-			   !strings.Contains(absURL, "contato") && 
-			   !strings.Contains(absURL, "expediente") {
+		if strings.Contains(linkElement, "netvasco.com.br") && len(titleElement) > 20 {
+			if !strings.HasSuffix(linkElement, "netvasco.com.br/") && 
+			   !strings.Contains(linkElement, "esportes.html") && 
+			   !strings.Contains(linkElement, "contato") && 
+			   !strings.Contains(linkElement, "expediente") {
 				
 				newsList = append(newsList, News{
-					Title:  title,
-					Link:   absURL,
-					Source: "NetVasco",
+					Title:  titleElement,
+					Link:   linkElement,
+					Source: SourceNetVasco,
 				})
 			}
 		}
@@ -48,10 +58,14 @@ func (n *NetvascoScraper) Fetch() ([]News, error) {
 
 	err := c.Visit(n.URL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("falha ao visitar NetVasco: %w", err)
 	}
 
-	uniqueNews := removeDuplicateNews(newsList)
-	fmt.Printf("🔍 NetVasco Scraper encontrou %d notícias brutas.\n", len(uniqueNews))
+	if scraperErr != nil {
+		return nil, scraperErr
+	}
+
+	uniqueNews := RemoveDuplicateNews(newsList)
+	fmt.Printf("🔍 NetVasco Scraper encontrou %d notícias únicas.\n", len(uniqueNews))
 	return uniqueNews, nil
 }

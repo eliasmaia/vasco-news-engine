@@ -21,7 +21,7 @@ The project follows a modular design for scalability and maintainability:
 - `/bot`: Handles Telegram message delivery, DTO mapping and Markdown formatting.
 - `/scraper`: Unified interface (`SiteScraper`) allowing easy addition of new news sources.
 - `/storage`: Persistence layer to track previously sent links.
-- **`/.github/workflows/bot.yml`**: GitHub Actions workflow triggered via `repository_dispatch` or `workflow_dispatch`, configured with caching for fast Go builds and secure environment secrets injection. External cron triggers (such as `cron-job.org`) can invoke this workflow periodically to keep the engine running seamlessly.
+- `/.github/workflows/bot.yml`: GitHub Actions workflow triggered via `repository_dispatch` or `workflow_dispatch`, configured with caching for fast Go builds and secure environment secrets injection. External cron triggers (such as `cron-job.org`) can invoke this workflow periodically to keep the engine running seamlessly.
 
 ### 🚀 Getting Started
 1. **Create a .env file** in the root directory:
@@ -36,7 +36,7 @@ TURSO_AUTH_TOKEN=your_token
 ```Bash
 go run main.go
 ```
-
+---
 <a name="português"></a>
 ## <img src="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/br.svg" width="25"> Português
 
@@ -55,7 +55,7 @@ O projeto utiliza uma estrutura modular para facilitar a manutenção e escalabi
 - `/bot`: Gerencia o envio de mensagens, mapeamento de DTOs e formatação em Markdown.
 - `/scraper`: Interface unificada (SiteScraper) que permite adicionar novas fontes de notícias facilmente.
 - `/storage`: Camada de persistência para controle de histórico de links enviados.
-- **`/.github/workflows/bot.yml`**: Workflow do GitHub Actions configurado para aceitar disparos via `repository_dispatch` ou `workflow_dispatch`. Ele gerencia cache de módulos Go, injeta as credenciais de forma segura via GitHub Secrets e executa o bot em ambiente `ubuntu-latest`. Serviços externos como o `cron-job.org` podem ser configurados para chamar o webhook do GitHub periodicamente, mantendo o bot rodando de forma 100% automatizada na nuvem.
+- `/.github/workflows/bot.yml`: Workflow do GitHub Actions configurado para aceitar disparos via `repository_dispatch` ou `workflow_dispatch`. Ele gerencia cache de módulos Go, injeta as credenciais de forma segura via GitHub Secrets e executa o bot em ambiente `ubuntu-latest`. Serviços externos como o `cron-job.org` podem ser configurados para chamar o webhook do GitHub periodicamente, mantendo o bot rodando de forma 100% automatizada na nuvem.
 
 ### 🚀 Como Rodar
 1. **Configure seu arquivo .env** na raiz do projeto:
